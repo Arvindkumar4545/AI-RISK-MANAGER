@@ -1,0 +1,26 @@
+{
+  "provider": "UptimeRobot",
+  "intervalSeconds": 300,
+  "monitors": [
+    {
+      "name": "Atlas Risk ML health",
+      "type": "HTTP",
+      "url": "https://<ml-service>.onrender.com/health",
+      "expectedStatus": 200,
+      "keyword": "\"model_loaded\":true"
+    },
+    {
+      "name": "Atlas Risk API health",
+      "type": "HTTP",
+      "url": "https://<api-service>.onrender.com/health",
+      "expectedStatus": 200,
+      "keyword": "\"database\":\"mongodb\""
+    },
+    {
+      "name": "Atlas Risk web",
+      "type": "HTTP",
+      "url": "https://<web-service>.onrender.com/",
+      "expectedStatus": 200
+    }
+  ]
+}

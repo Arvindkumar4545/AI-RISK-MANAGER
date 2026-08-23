@@ -40,10 +40,7 @@ services:
     staticPublishPath: dist
     envVars:
       - key: VITE_API_URL
-        fromService:
-          type: web
-          name: atlas-risk-api
-          property: host
+        sync: false
     routes:
       - type: rewrite
         source: /*

@@ -11,6 +11,7 @@ Full-stack explainable credit-risk platform built around the Home Credit Default
 - `mobile/`: React Native/Expo companion app.
 - `render.yaml`: Render Blueprint for the ML, Node, and web services.
 - `DEPLOYMENT_AUDIT.md`: GitHub, Render, and UptimeRobot deployment checklist.
+- `monitoring/uptimerobot-monitors.json`: monitor definitions to recreate in UptimeRobot.
 
 ## Setup
 

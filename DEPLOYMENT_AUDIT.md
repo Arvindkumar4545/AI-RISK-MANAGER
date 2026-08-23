@@ -19,7 +19,7 @@
 | Production model artifacts | Action required | Run the notebook with Kaggle data and securely ship the three `.pkl` files. |
 | Production secrets | Action required | Set a long random `JWT_SECRET`; never commit `.env` files. |
 | Uptime monitoring | Action required | Add Render health URLs to UptimeRobot. |
-| Mobile production URL | Action required | Set the deployed Node API URL in `mobile/App.js` or move it to app config. |
+| Mobile production URL | Implemented | Mobile reads `EXPO_PUBLIC_API_URL`; set it per Expo environment. |
 
 ## GitHub Deployment Checklist
 
@@ -40,7 +40,7 @@
 4. Set `JWT_SECRET` to a high-entropy secret.
 5. Verify `atlas-risk-ml/health` reports `model_loaded: true`. If it reports false, the ML service is running in demo fallback mode and must not be used for production decisions.
 6. Confirm the Node service health response reports `database: mongodb`.
-7. Set the web service's `VITE_API_URL` to the public Node API URL and redeploy the static site.
+7. Set the web service's `VITE_API_URL` to the public Node API URL and redeploy the static site. This must be the public HTTPS URL, not an internal Render hostname.
 
 ### Required Render environment variables
 
