@@ -9,8 +9,9 @@ Full-stack explainable credit-risk platform built around the Home Credit Default
 - `node-backend/`: Express + MongoDB auth and report API on port `4000`.
 - `web/`: React/Vite analyst workspace.
 - `mobile/`: React Native/Expo companion app.
-- `railway-deploy.md`: Railway backend and GitHub Pages service map.
-- `DEPLOYMENT_AUDIT.md`: GitHub, Railway, GitHub Pages, and UptimeRobot deployment checklist.
+- `deployment.md`: GitHub Pages, Vercel, Hugging Face, and MongoDB Atlas deployment map.
+- `.github/workflows/deploy-vercel.yml`: optional automatic Vercel API deployment on `main` changes.
+- `DEPLOYMENT_AUDIT.md`: GitHub Pages, Vercel, Hugging Face, MongoDB Atlas, and UptimeRobot deployment checklist.
 - `monitoring/uptimerobot-monitors.json`: monitor definitions to recreate in UptimeRobot.
 
 ## Setup
@@ -24,9 +25,53 @@ Full-stack explainable credit-risk platform built around the Home Credit Default
 
 The ML service returns a deterministic demo score when the pickle artifacts are not present, allowing the UI and service contracts to be exercised before the Kaggle download. Production scoring requires running the notebook first.
 
-For Railway production scoring, upload a private ZIP containing `risk_model.pkl`, `shap_explainer.pkl`, and `preprocessor.pkl`, then set `MODEL_ARTIFACT_URL` on the ML service. The ML health response must report `model_loaded: true` before production use.
+For production scoring, upload a private ZIP containing `risk_model.pkl`, `shap_explainer.pkl`, and `preprocessor.pkl` to the Hugging Face ML service. The ML health response must report `model_loaded: true` before production use.
+
+GitHub Pages deploys automatically from `main`. Connect `node-backend` as a Vercel project with its root directory set to `node-backend`; Vercel uses `vercel.json` to expose the Express API. Hugging Face Spaces can deploy `ml-backend` from this repository using its Dockerfile.
 
 If MongoDB is unavailable, the Node API starts in temporary in-memory development mode so local signup, prediction, and history still work. Reports are lost when that process stops; start MongoDB and restart Node for durable storage.
+
+## Production deployment (Railway + GitHub Pages)
+
+Use the following exact values for production hosting.
+
+### ML service
+
+Service root: `ml-backend`
+
+Required environment variables:
+
+- `MODEL_ARTIFACT_URL` = leave blank for demo mode, or provide a private ZIP URL containing `risk_model.pkl`, `shap_explainer.pkl`, and `preprocessor.pkl`
+
+Health check:
+
+- `https://<ml-service>.up.railway.app/health`
+- Expected response includes `status: "ok"` and either `model_loaded: true` or `demo_mode: true`
+
+### API service
+
+Service root: `node-backend`
+
+Required environment variables:
+
+- `MONGO_URI` = MongoDB Atlas SRV connection string
+- `JWT_SECRET` = long random secret used for login tokens
+- `ML_URL` = `https://<ml-service>.up.railway.app`
+- `CORS_ORIGIN` = `https://arvindkumar4545.github.io`
+- `PORT` = `4000`
+
+Health check:
+
+- `https://<api-service>.up.railway.app/health`
+- Expected response includes `status: "ok"` and `database: "mongodb"` in production
+
+### Frontend Pages
+
+Repository variable for GitHub Actions:
+
+- `VITE_API_URL` = `https://<api-service>.up.railway.app`
+
+The workflow in `.github/workflows/deploy-web.yml` builds the Vite app and publishes to GitHub Pages at `https://arvindkumar4545.github.io/AI-RISK-MANAGER/`.
 
 ## API contracts
 
