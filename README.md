@@ -9,8 +9,8 @@ Full-stack explainable credit-risk platform built around the Home Credit Default
 - `node-backend/`: Express + MongoDB auth and report API on port `4000`.
 - `web/`: React/Vite analyst workspace.
 - `mobile/`: React Native/Expo companion app.
-- `render.yaml`: Render Blueprint for the ML, Node, and web services.
-- `DEPLOYMENT_AUDIT.md`: GitHub, Render, and UptimeRobot deployment checklist.
+- `railway-deploy.md`: Railway backend and GitHub Pages service map.
+- `DEPLOYMENT_AUDIT.md`: GitHub, Railway, GitHub Pages, and UptimeRobot deployment checklist.
 - `monitoring/uptimerobot-monitors.json`: monitor definitions to recreate in UptimeRobot.
 
 ## Setup
@@ -24,7 +24,7 @@ Full-stack explainable credit-risk platform built around the Home Credit Default
 
 The ML service returns a deterministic demo score when the pickle artifacts are not present, allowing the UI and service contracts to be exercised before the Kaggle download. Production scoring requires running the notebook first.
 
-For Render production scoring, upload a private ZIP containing `risk_model.pkl`, `shap_explainer.pkl`, and `preprocessor.pkl`, then set `MODEL_ARTIFACT_URL` on the ML service. The ML health response must report `model_loaded: true` before production use.
+For Railway production scoring, upload a private ZIP containing `risk_model.pkl`, `shap_explainer.pkl`, and `preprocessor.pkl`, then set `MODEL_ARTIFACT_URL` on the ML service. The ML health response must report `model_loaded: true` before production use.
 
 If MongoDB is unavailable, the Node API starts in temporary in-memory development mode so local signup, prediction, and history still work. Reports are lost when that process stops; start MongoDB and restart Node for durable storage.
 

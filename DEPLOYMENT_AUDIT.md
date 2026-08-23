@@ -2,102 +2,85 @@
 
 **Project:** Atlas Risk Manager  
 **Audit date:** 2026-08-23  
-**Target:** GitHub -> Render -> UptimeRobot (UptimeBot)
+**Target:** GitHub -> Railway backends -> GitHub Pages frontend -> UptimeRobot
 
-## Current Status
+## Status
 
 | Area | Status | Evidence / action |
 |---|---|---|
-| Repository structure | Ready | Separate `ml-backend`, `node-backend`, `web`, and `mobile` projects exist. |
-| Notebook format | Ready | `train_model.ipynb` is valid JSON and has Python/Markdown cell metadata. |
-| ML health endpoint | Ready | `GET /health` on FastAPI. |
-| Node health endpoint | Ready | `GET /health` reports MongoDB or development memory mode. |
-| Web build | Ready | `npm run build` succeeds locally. |
-| GitHub CI | Added | `.github/workflows/ci.yml` validates Python, Node, and React. |
-| Render blueprint | Added | `render.yaml` defines ML, API, and static web services. |
-| MongoDB production storage | Action required | Create MongoDB Atlas database and set `MONGO_URI` in Render. |
-| Production model artifacts | Action required | Run the notebook with Kaggle data and securely ship the three `.pkl` files. |
-| Production secrets | Action required | Set a long random `JWT_SECRET`; never commit `.env` files. |
-| Uptime monitoring | Action required | Add Render health URLs to UptimeRobot. |
-| Mobile production URL | Implemented | Mobile reads `EXPO_PUBLIC_API_URL`; set it per Expo environment. |
+| GitHub source | Ready | Repository: `Arvindkumar4545/AI-RISK-MANAGER`; deploy from `main`. |
+| ML backend | Ready | FastAPI Dockerfile, Railway config, `/health`, configurable model artifacts. |
+| Node backend | Ready | Express Dockerfile, Railway config, JWT/bcrypt/Mongoose routes, `/health`. |
+| Web frontend | Ready | Vite base path, GitHub Pages workflow, production build. |
+| Mobile app | Ready | Reads `EXPO_PUBLIC_API_URL`. |
+| CI | Ready | GitHub Actions validates Python, Node, and web build. |
+| Railway deployment | Pending account action | Create two services with `ml-backend` and `node-backend` root directories. |
+| GitHub Pages deployment | Pending account action | Enable Pages with GitHub Actions and set repository variable `VITE_API_URL`. |
+| MongoDB Atlas | Required secret | Set `MONGO_URI` on Railway API service. |
+| Model artifacts | Required release input | Set `MODEL_ARTIFACT_URL` on Railway ML service. |
+| UptimeRobot | Post-deploy setup | Add the public Railway and GitHub Pages URLs. |
 
-## GitHub Deployment Checklist
+## Railway Backend Deployment
 
-1. Create a GitHub repository and push this project to the `main` branch.
-2. Confirm `.gitignore` excludes `.env`, CSV data, and pickle artifacts.
-3. Confirm the Actions workflow is green before deploying.
-4. Do not commit Kaggle credentials, MongoDB credentials, JWT secrets, or private applicant data.
-5. Treat `risk_model.pkl`, `shap_explainer.pkl`, and `preprocessor.pkl` as release artifacts. Store them in a private artifact store or attach them through the Render deployment process.
+Create two services from the GitHub repository using the Dockerfile builder:
 
-## Render Deployment
+| Service | Root directory | Port | Health path |
+|---|---|---:|---|
+| `atlas-risk-ml` | `ml-backend` | `$PORT` | `/health` |
+| `atlas-risk-api` | `node-backend` | `$PORT` | `/health` |
 
-1. In Render, choose **New -> Blueprint** and select the GitHub repository.
-2. Render reads `render.yaml` and creates:
-   - `atlas-risk-ml` on port `8000` internally.
-   - `atlas-risk-api` on port `4000` with MongoDB and JWT environment variables.
-   - `atlas-risk-web` as a static site.
-3. Create a MongoDB Atlas database and allow Render's outbound connections. Set `MONGO_URI` to the Atlas connection string.
-4. Set `JWT_SECRET` to a high-entropy secret.
-5. Verify `atlas-risk-ml/health` reports `model_loaded: true`. If it reports false, the ML service is running in demo fallback mode and must not be used for production decisions.
-6. Confirm the Node service health response reports `database: mongodb`.
-7. Set the web service's `VITE_API_URL` to the public Node API URL and redeploy the static site. This must be the public HTTPS URL, not an internal Render hostname.
+The service Dockerfiles use Railway's injected `$PORT`. Set the following variables:
 
-### Required Render environment variables
+**ML service**
 
-**atlas-risk-api**
+- `MODEL_ARTIFACT_URL`: private ZIP containing `risk_model.pkl`, `shap_explainer.pkl`, and `preprocessor.pkl`.
 
-- `MONGO_URI`
-- `JWT_SECRET`
-- `ML_URL` (provided by the blueprint; verify it points to the ML service)
+**API service**
 
-**atlas-risk-ml**
+- `MONGO_URI`: MongoDB Atlas connection string.
+- `JWT_SECRET`: high-entropy production secret.
+- `ML_URL`: public Railway ML service URL, for example `https://atlas-risk-ml-production.up.railway.app`.
 
-- `MODEL_ARTIFACT_URL` (private ZIP URL containing all three pickle artifacts)
+Verify ML `/health` reports `model_loaded: true` and API `/health` reports `database: mongodb`. Demo and memory modes are development-only.
 
-**atlas-risk-web**
+## GitHub Pages Frontend
 
-- `VITE_API_URL` (the public Node API URL, for example `https://atlas-risk-api.onrender.com`)
+1. Push the repository to `main`.
+2. In GitHub, open **Settings -> Pages** and choose **GitHub Actions** as the source.
+3. In **Settings -> Secrets and variables -> Actions -> Variables**, add `VITE_API_URL` with the public Railway API URL.
+4. The `Deploy web to GitHub Pages` workflow builds `web` and publishes it automatically.
 
-## UptimeRobot / UptimeBot Monitoring
+Expected website URL:
 
-Create HTTP(s) monitors for:
+```text
+https://arvindkumar4545.github.io/AI-RISK-MANAGER/
+```
 
-- `https://<ml-service>.onrender.com/health`
-- `https://<api-service>.onrender.com/health`
-- `https://<web-service>.onrender.com/`
+The URL is case-sensitive and depends on the repository name.
 
-Recommended settings:
+## UptimeRobot / UptimeBot
 
-- Check interval: 5 minutes.
-- Alert contacts: engineering email and incident channel.
-- Expected response: HTTP `200`.
-- API health body should include `"status":"ok"` and `"database":"mongodb"`.
-- ML health body should include `"status":"ok"` and `"model_loaded":true`.
+Use `monitoring/uptimerobot-monitors.json` as the template. Create HTTP monitors for:
 
-Use UptimeRobot's webhook or email alert integration. If by “UptimeBot” you mean a different monitoring provider, use the same URLs and expected response checks.
+- `https://<ml-service>.up.railway.app/health`
+- `https://<api-service>.up.railway.app/health`
+- `https://arvindkumar4545.github.io/AI-RISK-MANAGER/`
+
+Use a five-minute interval and alert on non-200 responses. Require `model_loaded:true` for ML and `database:mongodb` for the API.
 
 ## Release Verification
 
-Run these checks after every Render deploy:
-
 ```powershell
-curl.exe -s https://<ml-service>.onrender.com/health
-curl.exe -s https://<api-service>.onrender.com/health
-curl.exe -s -o NUL -w "%{http_code}" https://<web-service>.onrender.com/
+curl.exe -s https://<ml-service>.up.railway.app/health
+curl.exe -s https://<api-service>.up.railway.app/health
+curl.exe -s -o NUL -w "%{http_code}" https://arvindkumar4545.github.io/AI-RISK-MANAGER/
 ```
 
-Then verify the user journey:
+Then verify signup, login, prediction with `top_factors`, stress testing, and report history.
 
-1. Sign up with a new test account.
-2. Log in and receive a JWT.
-3. Submit an applicant risk check and confirm `risk_score`, `risk_band`, and `top_factors`.
-4. Run a stress test with rate and inflation shocks.
-5. Confirm the report appears in history.
-6. Delete test data from MongoDB Atlas after validation.
+## Known Deployment Limits
 
-## Known Risks Before Production
-
-- The current fallback mode is useful for development but stores users and reports only in process memory.
-- The notebook currently trains on the full encoded dataset before validation; production model governance should add a leakage review, versioned split, calibration, and monitoring.
-- Mobile builds read `EXPO_PUBLIC_API_URL`; provide the deployed Node API URL per environment.
-- Do not use demo fallback scores for lending decisions.
+- Actual Railway URLs are created only after Railway creates the services.
+- GitHub Pages cannot run the backend; its `VITE_API_URL` must point to Railway.
+- Without model artifacts, ML intentionally exposes demo mode and must not be used for lending decisions.
+- Without MongoDB, API persistence is temporary in-memory development storage.

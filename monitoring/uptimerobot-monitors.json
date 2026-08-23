@@ -5,21 +5,21 @@
     {
       "name": "Atlas Risk ML health",
       "type": "HTTP",
-      "url": "https://<ml-service>.onrender.com/health",
+      "url": "https://<ml-service>.up.railway.app/health",
       "expectedStatus": 200,
       "keyword": "\"model_loaded\":true"
     },
     {
       "name": "Atlas Risk API health",
       "type": "HTTP",
-      "url": "https://<api-service>.onrender.com/health",
+      "url": "https://<api-service>.up.railway.app/health",
       "expectedStatus": 200,
       "keyword": "\"database\":\"mongodb\""
     },
     {
       "name": "Atlas Risk web",
       "type": "HTTP",
-      "url": "https://<web-service>.onrender.com/",
+      "url": "https://arvindkumar4545.github.io/AI-RISK-MANAGER/",
       "expectedStatus": 200
     }
   ]
