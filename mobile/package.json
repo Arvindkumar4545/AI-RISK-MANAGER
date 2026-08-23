@@ -1,0 +1,1 @@
+{"name":"risk-manager-mobile","version":"1.0.0","private":true,"main":"expo/AppEntry.js","scripts":{"start":"expo start"},"dependencies":{"@react-native-async-storage/async-storage":"latest","axios":"^1.7.9","expo":"latest","react":"latest","react-native":"latest"}}
