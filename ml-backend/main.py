@@ -1,5 +1,10 @@
 from pathlib import Path
 import pickle
+import os
+import tempfile
+import urllib.request
+import urllib.error
+import zipfile
 from typing import Any
 import numpy as np
 import pandas as pd
@@ -7,6 +12,7 @@ from fastapi import FastAPI
 from pydantic import BaseModel, Field
 
 ROOT = Path(__file__).resolve().parent.parent
+ARTIFACT_DIR = Path(os.getenv('MODEL_ARTIFACT_DIR', ROOT))
 app = FastAPI(title='AI Risk Manager ML API', version='1.0.0')
 
 class Applicant(BaseModel):
@@ -29,12 +35,24 @@ def engineer(frame: pd.DataFrame) -> pd.DataFrame:
     return frame.replace([np.inf, -np.inf], np.nan)
 
 def load_artifacts():
+    archive_url = os.getenv('MODEL_ARTIFACT_URL')
+    if archive_url:
+        artifact_dir = Path(tempfile.gettempdir()) / 'atlas-risk-model'
+        artifact_dir.mkdir(exist_ok=True)
+        archive_path = artifact_dir / 'model-artifacts.zip'
+        if not archive_path.exists():
+            urllib.request.urlretrieve(archive_url, archive_path)
+            with zipfile.ZipFile(archive_path) as archive:
+                archive.extractall(artifact_dir)
+        artifact_root = artifact_dir
+    else:
+        artifact_root = ARTIFACT_DIR
     try:
-        with open(ROOT / 'risk_model.pkl', 'rb') as f: model = pickle.load(f)
-        with open(ROOT / 'shap_explainer.pkl', 'rb') as f: explainer = pickle.load(f)
-        with open(ROOT / 'preprocessor.pkl', 'rb') as f: bundle = pickle.load(f)
+        with open(artifact_root / 'risk_model.pkl', 'rb') as f: model = pickle.load(f)
+        with open(artifact_root / 'shap_explainer.pkl', 'rb') as f: explainer = pickle.load(f)
+        with open(artifact_root / 'preprocessor.pkl', 'rb') as f: bundle = pickle.load(f)
         return model, explainer, bundle['transformer']
-    except FileNotFoundError:
+    except (FileNotFoundError, urllib.error.URLError, zipfile.BadZipFile):
         return None, None, None
 
 model, explainer, preprocessor = load_artifacts()
@@ -59,7 +77,7 @@ def predict(data: dict[str, Any], rate_hike_pct: float = 0, inflation_pct: float
     return {'risk_score': round(score, 4), 'risk_band': 'High' if score >= 0.5 else 'Low', 'top_factors': factors}
 
 @app.get('/health')
-def health(): return {'status': 'ok', 'model_loaded': model is not None}
+def health(): return {'status': 'ok', 'model_loaded': model is not None, 'demo_mode': model is None}
 
 @app.post('/predict')
 def predict_endpoint(request: Applicant): return predict(request.data)
